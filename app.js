@@ -133,14 +133,18 @@ function vHome(){
 }
 
 function vHadith(arg){
-  var bk=null,detail=null;
+  var bk=null,detail=null,showAll=false;
   if(arg){
     if(arg[0]==="h")detail=findHadith(arg);
+    else if(arg==="all")showAll=true;
     else{for(var i=0;i<DATA.books.length;i++)if(DATA.books[i].id===arg)bk=DATA.books[i];}
   }
-  if(!bk&&!detail)bk=DATA.books[0];
+  if(!bk&&!detail&&!showAll)showAll=true;
   var side='<div class="books-panel"><h3>الكتب</h3><div class="books-list">';
   var chips='<div class="books-chips">';
+  var allAct=showAll?" active":"";
+  side+='<a class="book-link'+allAct+'" href="#/hadith/all"><span>عرض الكل</span><span class="c">'+arNum(ALL_HADITHS.length)+'</span></a>';
+  chips+='<a class="book-link'+allAct+'" href="#/hadith/all">عرض الكل ('+arNum(ALL_HADITHS.length)+')</a>';
   DATA.books.forEach(function(b){
     var c=bookCount(b),act=(bk&&b.id===bk.id)?" active":"";
     side+='<a class="book-link'+act+'" href="#/hadith/'+b.id+'"><span>'+esc(b.title)+'</span><span class="c">'+arNum(c)+'</span></a>';
@@ -153,6 +157,19 @@ function vHadith(arg){
     DATA.books.forEach(function(b){if(b.id===detail.bookId)pbk=b;});
     main='<div class="breadcrumb"><a href="#/hadith">الموسوعة الحديثية</a> / <a href="#/hadith/'+pbk.id+'">'+esc(pbk.title)+'</a> / حديث '+arNum(detail.seq)+'</div>'+
       '<h2 class="sec-title">'+esc(detail.babTitle)+'</h2>'+hadithCard(detail,false);
+  }else if(showAll){
+    main='<div class="kitab-head"><h2>جميع الأحاديث</h2><div class="bsm">'+arNum(ALL_HADITHS.length)+' حديثًا في '+arNum(DATA.books.length)+' كتابًا</div></div>';
+    DATA.books.forEach(function(b){
+      main+='<div class="kitab-head" style="margin-top:26px"><h2 style="font-size:22px">'+esc(b.title)+'</h2></div>';
+      b.babs.forEach(function(bb){
+        main+='<h3 class="bab-title">'+esc(bb.title)+'</h3>';
+        bb.hadiths.forEach(function(h){
+          var full=null;
+          for(var i=0;i<ALL_HADITHS.length;i++)if(ALL_HADITHS[i].id===h.id)full=ALL_HADITHS[i];
+          main+=hadithCard(full,true);
+        });
+      });
+    });
   }else{
     main='<div class="kitab-head"><h2>'+esc(bk.title)+'</h2><div class="bsm">بسم الله الرحمن الرحيم — '+arNum(bookCount(bk))+' أحاديث</div></div>';
     bk.babs.forEach(function(b){
@@ -184,19 +201,25 @@ function vQuran(sid){
     '<p class="verse">'+verses+'</p></div>';
 }
 
-var ahkamSel=0;
+var ahkamSel=-1;
+var ALL_AHKAM=DATA.ahkam.reduce(function(s,c){return s+c.rulings.length;},0);
 function vAhkam(){
-  var chips=DATA.ahkam.map(function(c,i){
+  var chips='<button class="cat-chip'+(ahkamSel===-1?" active":"")+'" data-i="-1">عرض الكل ('+arNum(ALL_AHKAM)+')</button>'+
+    DATA.ahkam.map(function(c,i){
     return '<button class="cat-chip'+(i===ahkamSel?" active":"")+'" data-i="'+i+'">'+esc(c.book)+'</button>';
   }).join("");
-  var c=DATA.ahkam[ahkamSel];
-  var cards=c.rulings.map(function(r){
+  var cats=(ahkamSel===-1)?DATA.ahkam:[DATA.ahkam[ahkamSel]];
+  var html="";
+  cats.forEach(function(c){
+    html+='<h3 class="bab-title">'+esc(c.book)+'</h3>';
+    html+=c.rulings.map(function(r){
     return '<div class="ruling-card"><div class="ruling-head"><h3>'+esc(r.title)+
       '</h3><span class="hukm '+hukmClass(r.hukm)+'">'+esc(r.hukm)+'</span></div>'+
       '<div class="ruling-field"><span class="fl">الدليل: </span>'+esc(r.dalil)+'</div>'+
       '<div class="ruling-field"><span class="fl">البيان: </span>'+esc(r.bayan)+'</div></div>';
-  }).join("");
-  return '<h2 class="sec-title">موسوعة الأحكام</h2><div class="ahkam-cats">'+chips+'</div><div>'+cards+'</div>';
+    }).join("");
+  });
+  return '<h2 class="sec-title">موسوعة الأحكام</h2><div class="ahkam-cats">'+chips+'</div><div>'+html+'</div>';
 }
 
 function vRuwat(rid){
